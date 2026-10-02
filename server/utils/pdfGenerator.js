@@ -4,10 +4,12 @@ const generatePDF = (reportData, outputStream) => {
   const doc = new PDFDocument({
     size: "A4",
     margin: 45,
-    bufferPages: true,
+    autoFirstPage: true,
     info: {
       Title: "Instagram Analytics Report",
-      Author: reportData.analystName || "Instagram Analytics Dashboard",
+      Author:
+        reportData.analystName ||
+        "Instagram Analytics Dashboard",
       Subject: "Instagram Account Analytics Report",
     },
   });
@@ -22,14 +24,17 @@ const generatePDF = (reportData, outputStream) => {
     purple: "#833AB4",
     pink: "#E1306C",
     orange: "#F77737",
+    green: "#239B56",
+
     dark: "#17202A",
     text: "#30343B",
     muted: "#737B86",
+
     light: "#F5F3F7",
     border: "#E5E1E8",
     white: "#FFFFFF",
-    green: "#239B56",
-    blue: "#2874A6",
+
+    softPurple: "#F9F5FC",
   };
 
   // =========================================================
@@ -38,7 +43,10 @@ const generatePDF = (reportData, outputStream) => {
 
   const safeNumber = (value) => {
     const number = Number(value);
-    return Number.isFinite(number) ? number : 0;
+
+    return Number.isFinite(number)
+      ? number
+      : 0;
   };
 
   const formatNumber = (value) => {
@@ -49,54 +57,125 @@ const generatePDF = (reportData, outputStream) => {
     return `${safeNumber(value).toFixed(2)}%`;
   };
 
-  const drawRoundedCard = (x, y, width, height, fill = COLORS.white) => {
+  const drawCard = (
+    x,
+    y,
+    width,
+    height,
+    background = COLORS.white
+  ) => {
     doc
-      .roundedRect(x, y, width, height, 10)
-      .fillAndStroke(fill, COLORS.border);
+      .roundedRect(
+        x,
+        y,
+        width,
+        height,
+        8
+      )
+      .fillAndStroke(
+        background,
+        COLORS.border
+      );
   };
 
-  const drawSectionTitle = (title, subtitle) => {
-    checkPageSpace(70);
-
+  const drawHeader = () => {
     doc
       .font("Helvetica-Bold")
-      .fontSize(17)
+      .fontSize(8)
+      .fillColor(COLORS.purple)
+      .text(
+        "INSTALYTICS  •  AI ANALYTICS",
+        45,
+        25
+      );
+
+    doc
+      .moveTo(45, 40)
+      .lineTo(550, 40)
+      .lineWidth(0.5)
+      .strokeColor(COLORS.border)
+      .stroke();
+  };
+
+  const drawSectionTitle = (
+    title,
+    subtitle,
+    y
+  ) => {
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(16)
       .fillColor(COLORS.dark)
-      .text(title, 45, doc.y);
+      .text(
+        title,
+        45,
+        y
+      );
 
     if (subtitle) {
       doc
         .font("Helvetica")
-        .fontSize(9)
+        .fontSize(8.5)
         .fillColor(COLORS.muted)
-        .text(subtitle, 45, doc.y + 5);
+        .text(
+          subtitle,
+          45,
+          y + 22
+        );
     }
-
-    doc.moveDown(1.3);
   };
 
-  const drawKpiCard = (x, y, width, label, value, accent) => {
-    drawRoundedCard(x, y, width, 82);
+  const drawKpiCard = (
+    x,
+    y,
+    width,
+    height,
+    label,
+    value,
+    accent
+  ) => {
+    drawCard(
+      x,
+      y,
+      width,
+      height
+    );
 
     doc
-      .roundedRect(x, y, 5, 82, 2)
+      .roundedRect(
+        x,
+        y,
+        4,
+        height,
+        2
+      )
       .fill(accent);
 
     doc
       .font("Helvetica")
-      .fontSize(9)
+      .fontSize(7.5)
       .fillColor(COLORS.muted)
-      .text(label.toUpperCase(), x + 16, y + 15, {
-        width: width - 28,
-      });
+      .text(
+        label.toUpperCase(),
+        x + 13,
+        y + 12,
+        {
+          width: width - 20,
+        }
+      );
 
     doc
       .font("Helvetica-Bold")
-      .fontSize(20)
+      .fontSize(16)
       .fillColor(COLORS.dark)
-      .text(value, x + 16, y + 35, {
-        width: width - 28,
-      });
+      .text(
+        value,
+        x + 13,
+        y + 33,
+        {
+          width: width - 20,
+        }
+      );
   };
 
   const drawProgressBar = (
@@ -108,78 +187,85 @@ const generatePDF = (reportData, outputStream) => {
     width,
     color
   ) => {
-    const safeMax = maxValue > 0 ? maxValue : 1;
+    const max =
+      maxValue > 0
+        ? maxValue
+        : 1;
+
     const percentage = Math.min(
       1,
-      Math.max(0, value / safeMax)
+      Math.max(
+        0,
+        value / max
+      )
     );
 
     doc
       .font("Helvetica-Bold")
-      .fontSize(9)
+      .fontSize(8.5)
       .fillColor(COLORS.text)
-      .text(label, x, y);
+      .text(
+        label,
+        x,
+        y
+      );
 
     doc
       .font("Helvetica")
-      .fontSize(9)
+      .fontSize(8)
       .fillColor(COLORS.muted)
-      .text(formatNumber(value), x + width - 65, y);
+      .text(
+        formatNumber(value),
+        x + width - 65,
+        y,
+        {
+          width: 65,
+          align: "right",
+        }
+      );
 
     doc
-      .roundedRect(x, y + 17, width, 8, 4)
+      .roundedRect(
+        x,
+        y + 15,
+        width,
+        7,
+        3
+      )
       .fill(COLORS.light);
 
     if (percentage > 0) {
       doc
         .roundedRect(
           x,
-          y + 17,
+          y + 15,
           width * percentage,
-          8,
-          4
+          7,
+          3
         )
         .fill(color);
     }
-  };
-
-  const checkPageSpace = (requiredHeight) => {
-    if (doc.y + requiredHeight > 750) {
-      doc.addPage();
-      drawPageHeader();
-    }
-  };
-
-  const drawPageHeader = () => {
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(8)
-      .fillColor(COLORS.purple)
-      .text(
-        "INSTALYTICS  •  AI ANALYTICS",
-        45,
-        28
-      );
-
-    doc
-      .moveTo(45, 43)
-      .lineTo(550, 43)
-      .strokeColor(COLORS.border)
-      .stroke();
-
-    doc.y = 60;
   };
 
   // =========================================================
   // DATA
   // =========================================================
 
-  const summary = reportData.summary || {};
-  const postAnalysis = reportData.postAnalysis || {};
-  const contentAnalysis = reportData.contentAnalysis || {};
-  const aiInsights = Array.isArray(reportData.aiInsights)
-    ? reportData.aiInsights
-    : [];
+  const summary =
+    reportData.summary || {};
+
+  const postAnalysis =
+    reportData.postAnalysis || {};
+
+  const contentAnalysis =
+    reportData.contentAnalysis || {};
+
+  const aiInsights =
+    Array.isArray(
+      reportData.aiInsights
+    )
+      ? reportData.aiInsights
+      : [];
 
   const totalPosts =
     summary.totalPosts ??
@@ -243,99 +329,109 @@ const generatePDF = (reportData, outputStream) => {
     0;
 
   // =========================================================
-  // PAGE 1 - COVER / SUMMARY
+  // PAGE 1
+  // OVERVIEW
   // =========================================================
 
   doc
-    .rect(0, 0, 595, 115)
+    .rect(
+      0,
+      0,
+      595,
+      115
+    )
     .fill(COLORS.purple);
 
   doc
     .font("Helvetica-Bold")
-    .fontSize(26)
+    .fontSize(25)
     .fillColor(COLORS.white)
     .text(
       "Instagram Analytics",
       45,
-      30
+      28
     );
 
   doc
     .font("Helvetica")
-    .fontSize(14)
+    .fontSize(13)
     .fillColor("#EDE3F4")
     .text(
       "AI-Powered Performance Report",
       45,
-      65
+      62
     );
 
   doc
-    .font("Helvetica")
-    .fontSize(8)
+    .font("Helvetica-Bold")
+    .fontSize(7)
     .fillColor("#EDE3F4")
     .text(
       "INSTALYTICS",
       45,
-      90
+      91
     );
 
-  doc.y = 145;
+  // =========================================================
+  // REPORT DETAILS
+  // =========================================================
 
-  // Analyst information
-
-  drawRoundedCard(45, doc.y, 505, 90);
-
-  const analystCardY = doc.y;
+  drawCard(
+    45,
+    140,
+    505,
+    90
+  );
 
   doc
     .font("Helvetica-Bold")
-    .fontSize(11)
+    .fontSize(10)
     .fillColor(COLORS.dark)
     .text(
       "REPORT DETAILS",
       65,
-      analystCardY + 17
+      157
     );
 
   doc
     .font("Helvetica")
-    .fontSize(10)
+    .fontSize(9)
     .fillColor(COLORS.text)
     .text(
-      `Analyst Name: ${reportData.analystName || "N/A"}`,
+      `Analyst Name: ${
+        reportData.analystName || "N/A"
+      }`,
       65,
-      analystCardY + 42
+      181
     );
 
-  doc
-    .text(
-      `Account ID: ${reportData.account_id || "N/A"}`,
-      65,
-      analystCardY + 60
-    );
+  doc.text(
+    `Account ID: ${
+      reportData.account_id || "N/A"
+    }`,
+    65,
+    199
+  );
 
   doc
-    .font("Helvetica")
+    .fontSize(8)
     .fillColor(COLORS.muted)
     .text(
-      `Generated: ${new Date().toLocaleDateString("en-IN")}`,
-      350,
-      analystCardY + 42
+      `Generated: ${new Date().toLocaleDateString(
+        "en-IN"
+      )}`,
+      365,
+      181
     );
-
-  doc.y = analystCardY + 115;
-
-  // Dashboard link
 
   doc
     .font("Helvetica-Bold")
-    .fontSize(9)
+    .fontSize(8.5)
     .fillColor(COLORS.purple)
     .text(
       "Open Instagram Analytics Dashboard →",
-      45,
-      doc.y,
+      365,
+      202,
       {
         link:
           "https://karisniv.github.io/Instagram-Analytics-Dashboard-using-AI/",
@@ -343,165 +439,198 @@ const generatePDF = (reportData, outputStream) => {
       }
     );
 
-  doc.y += 30;
-
   // =========================================================
-  // KPI SECTION
+  // PERFORMANCE OVERVIEW
   // =========================================================
 
   drawSectionTitle(
     "Performance Overview",
-    "Key metrics for the selected Instagram account"
+    "Key metrics for the selected Instagram account",
+    260
   );
-
-  const cardWidth = 118;
-  const gap = 11;
-  const kpiStartY = doc.y;
 
   drawKpiCard(
     45,
-    kpiStartY,
-    cardWidth,
+    305,
+    118,
+    75,
     "Total Posts",
     formatNumber(totalPosts),
     COLORS.purple
   );
 
   drawKpiCard(
-    45 + cardWidth + gap,
-    kpiStartY,
-    cardWidth,
+    174,
+    305,
+    118,
+    75,
     "Likes",
     formatNumber(totalLikes),
     COLORS.pink
   );
 
   drawKpiCard(
-    45 + (cardWidth + gap) * 2,
-    kpiStartY,
-    cardWidth,
+    303,
+    305,
+    118,
+    75,
     "Comments",
     formatNumber(totalComments),
     COLORS.orange
   );
 
   drawKpiCard(
-    45 + (cardWidth + gap) * 3,
-    kpiStartY,
-    cardWidth,
+    432,
+    305,
+    118,
+    75,
     "Engagement",
     formatPercent(engagementRate),
     COLORS.green
   );
 
-  doc.y = kpiStartY + 105;
-
   // =========================================================
-  // ENGAGEMENT METRICS
+  // ENGAGEMENT BREAKDOWN
   // =========================================================
 
   drawSectionTitle(
     "Engagement Breakdown",
-    "Audience interactions across published content"
+    "Audience interactions across published content",
+    415
   );
 
-  const engagementY = doc.y;
+  drawCard(
+    45,
+    460,
+    505,
+    235
+  );
 
-  drawRoundedCard(45, engagementY, 505, 155);
-
-  drawProgressBar(
-    "Likes",
-    totalLikes,
+  const maxEngagement =
     Math.max(
       totalLikes,
       totalComments,
       totalShares,
-      totalSaves
-    ),
-    65,
-    engagementY + 20,
-    430,
+      totalSaves,
+      1
+    );
+
+  drawProgressBar(
+    "Likes",
+    totalLikes,
+    maxEngagement,
+    70,
+    485,
+    455,
     COLORS.pink
   );
 
   drawProgressBar(
     "Comments",
     totalComments,
-    Math.max(
-      totalLikes,
-      totalComments,
-      totalShares,
-      totalSaves
-    ),
-    65,
-    engagementY + 58,
-    430,
+    maxEngagement,
+    70,
+    535,
+    455,
     COLORS.orange
   );
 
   drawProgressBar(
     "Shares",
     totalShares,
-    Math.max(
-      totalLikes,
-      totalComments,
-      totalShares,
-      totalSaves
-    ),
-    65,
-    engagementY + 96,
-    430,
+    maxEngagement,
+    70,
+    585,
+    455,
     COLORS.purple
   );
 
   drawProgressBar(
     "Saves",
     totalSaves,
-    Math.max(
-      totalLikes,
-      totalComments,
-      totalShares,
-      totalSaves
-    ),
-    65,
-    engagementY + 134,
-    430,
+    maxEngagement,
+    70,
+    635,
+    455,
     COLORS.green
   );
 
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor(COLORS.dark)
+    .text(
+      `Reach: ${formatNumber(totalReach)}`,
+      70,
+      670
+    );
+
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor(COLORS.dark)
+    .text(
+      `Impressions: ${formatNumber(impressions)}`,
+      350,
+      670
+    );
+
   // =========================================================
-  // PAGE 2 - POST ANALYSIS
+  // PAGE 2
+  // POST + CONTENT ANALYSIS
   // =========================================================
 
   doc.addPage();
-  drawPageHeader();
+
+  drawHeader();
 
   drawSectionTitle(
     "Post Analysis",
-    "Detailed interaction metrics for the selected account"
+    "Detailed interaction metrics for the selected account",
+    65
   );
 
-  const tableY = doc.y;
+  // =========================================================
+  // POST ANALYSIS TABLE
+  // =========================================================
 
-  // Table header
+  const tableX = 45;
+  const tableY = 112;
+  const tableWidth = 505;
+  const headerHeight = 28;
+  const rowHeight = 31;
 
   doc
-    .roundedRect(45, tableY, 505, 32, 6)
+    .roundedRect(
+      tableX,
+      tableY,
+      tableWidth,
+      headerHeight,
+      5
+    )
     .fill(COLORS.purple);
 
-  const columns = [
-    ["Metric", 65],
-    ["Value", 340],
-    ["Description", 410],
-  ];
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(8)
+    .fillColor(COLORS.white)
+    .text(
+      "METRIC",
+      62,
+      tableY + 9
+    );
 
-  columns.forEach(([label, x]) => {
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(9)
-      .fillColor(COLORS.white)
-      .text(label, x, tableY + 10);
-  });
+  doc.text(
+    "VALUE",
+    320,
+    tableY + 9
+  );
+
+  doc.text(
+    "DESCRIPTION",
+    405,
+    tableY + 9
+  );
 
   const postRows = [
     [
@@ -546,39 +675,55 @@ const generatePDF = (reportData, outputStream) => {
     ],
   ];
 
-  let rowY = tableY + 32;
+  let currentY =
+    tableY + headerHeight;
 
-  postRows.forEach((row, index) => {
-    const rowHeight = 38;
+  postRows.forEach(
+    (row, index) => {
+      if (index % 2 === 0) {
+        doc
+          .rect(
+            tableX,
+            currentY,
+            tableWidth,
+            rowHeight
+          )
+          .fill("#FAF9FB");
+      }
 
-    if (index % 2 === 0) {
       doc
-        .rect(45, rowY, 505, rowHeight)
-        .fill("#FAF9FB");
+        .font("Helvetica-Bold")
+        .fontSize(8)
+        .fillColor(COLORS.text)
+        .text(
+          row[0],
+          62,
+          currentY + 10
+        );
+
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor(COLORS.purple)
+        .text(
+          row[1],
+          320,
+          currentY + 9
+        );
+
+      doc
+        .font("Helvetica")
+        .fontSize(7.5)
+        .fillColor(COLORS.muted)
+        .text(
+          row[2],
+          405,
+          currentY + 10
+        );
+
+      currentY += rowHeight;
     }
-
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(9)
-      .fillColor(COLORS.text)
-      .text(row[0], 65, rowY + 13);
-
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .fillColor(COLORS.purple)
-      .text(row[1], 340, rowY + 12);
-
-    doc
-      .font("Helvetica")
-      .fontSize(8)
-      .fillColor(COLORS.muted)
-      .text(row[2], 410, rowY + 13);
-
-    rowY += rowHeight;
-  });
-
-  doc.y = rowY + 35;
+  );
 
   // =========================================================
   // CONTENT ANALYSIS
@@ -586,15 +731,15 @@ const generatePDF = (reportData, outputStream) => {
 
   drawSectionTitle(
     "Content Analysis",
-    "Distribution of content across media formats"
+    "Distribution of content across media formats",
+    410
   );
-
-  const contentY = doc.y;
 
   drawKpiCard(
     45,
-    contentY,
+    455,
     115,
+    62,
     "Images",
     formatNumber(totalImages),
     COLORS.purple
@@ -602,8 +747,9 @@ const generatePDF = (reportData, outputStream) => {
 
   drawKpiCard(
     175,
-    contentY,
+    455,
     115,
+    62,
     "Videos",
     formatNumber(totalVideos),
     COLORS.pink
@@ -611,8 +757,9 @@ const generatePDF = (reportData, outputStream) => {
 
   drawKpiCard(
     305,
-    contentY,
+    455,
     115,
+    62,
     "Carousels",
     formatNumber(totalCarousels),
     COLORS.orange
@@ -620,178 +767,233 @@ const generatePDF = (reportData, outputStream) => {
 
   drawKpiCard(
     435,
-    contentY,
+    455,
     115,
+    62,
     "Reels",
     formatNumber(totalReels),
     COLORS.green
   );
 
-  doc.y = contentY + 110;
+  // =========================================================
+  // MEDIA DISTRIBUTION
+  // =========================================================
 
-  // Content visualization
-
-  drawRoundedCard(45, doc.y, 505, 180);
-
-  const mediaData = [
-    ["Images", totalImages, COLORS.purple],
-    ["Videos", totalVideos, COLORS.pink],
-    ["Carousels", totalCarousels, COLORS.orange],
-    ["Reels", totalReels, COLORS.green],
-  ];
-
-  const maxMedia = Math.max(
-    totalImages,
-    totalVideos,
-    totalCarousels,
-    totalReels,
-    1
+  drawCard(
+    45,
+    540,
+    505,
+    190
   );
 
-  let mediaY = doc.y + 25;
-
-  mediaData.forEach(([label, value, color]) => {
-    drawProgressBar(
-      label,
-      value,
-      maxMedia,
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(9)
+    .fillColor(COLORS.dark)
+    .text(
+      "MEDIA DISTRIBUTION",
       70,
-      mediaY,
-      450,
-      color
+      560
     );
 
-    mediaY += 38;
-  });
+  const mediaData = [
+    [
+      "Images",
+      totalImages,
+      COLORS.purple,
+    ],
+    [
+      "Videos",
+      totalVideos,
+      COLORS.pink,
+    ],
+    [
+      "Carousels",
+      totalCarousels,
+      COLORS.orange,
+    ],
+    [
+      "Reels",
+      totalReels,
+      COLORS.green,
+    ],
+  ];
 
-  doc.y = mediaY + 25;
+  const maxMedia =
+    Math.max(
+      totalImages,
+      totalVideos,
+      totalCarousels,
+      totalReels,
+      1
+    );
+
+  let mediaY = 585;
+
+  mediaData.forEach(
+    ([label, value, color]) => {
+      drawProgressBar(
+        label,
+        value,
+        maxMedia,
+        70,
+        mediaY,
+        455,
+        color
+      );
+
+      mediaY += 35;
+    }
+  );
 
   // =========================================================
+  // PAGE 3
   // AI INSIGHTS
   // =========================================================
 
   doc.addPage();
-  drawPageHeader();
+
+  drawHeader();
 
   drawSectionTitle(
     "AI Insights & Recommendations",
-    "Automated observations generated from account performance data"
+    "Automated observations generated from account performance data",
+    65
   );
 
-  if (aiInsights.length === 0) {
-    drawRoundedCard(45, doc.y, 505, 70);
+  const displayedInsights =
+    aiInsights.slice(0, 5);
+
+  let insightY = 112;
+
+  if (
+    displayedInsights.length === 0
+  ) {
+    drawCard(
+      45,
+      insightY,
+      505,
+      70,
+      COLORS.softPurple
+    );
 
     doc
       .font("Helvetica")
-      .fontSize(10)
+      .fontSize(9)
       .fillColor(COLORS.muted)
       .text(
         "No AI insights are currently available.",
         65,
-        doc.y + 28
+        insightY + 28
       );
   } else {
-    aiInsights.forEach((insight, index) => {
-      checkPageSpace(90);
-
-      const cardY = doc.y;
-
-      drawRoundedCard(
-        45,
-        cardY,
-        505,
-        75,
-        "#FCFAFD"
-      );
-
-      doc
-        .circle(72, cardY + 28, 13)
-        .fill(COLORS.purple);
-
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(9)
-        .fillColor(COLORS.white)
-        .text(
-          String(index + 1),
-          69,
-          cardY + 23,
-          {
-            width: 7,
-            align: "center",
-          }
+    displayedInsights.forEach(
+      (insight, index) => {
+        drawCard(
+          45,
+          insightY,
+          505,
+          70,
+          COLORS.softPurple
         );
 
-      doc
-        .font("Helvetica-Bold")
-        .fontSize(10)
-        .fillColor(COLORS.dark)
-        .text(
-          "AI Recommendation",
-          100,
-          cardY + 14
-        );
+        doc
+          .circle(
+            72,
+            insightY + 25,
+            13
+          )
+          .fill(COLORS.purple);
 
-      doc
-        .font("Helvetica")
-        .fontSize(9)
-        .fillColor(COLORS.text)
-        .text(
-          String(insight),
-          100,
-          cardY + 34,
-          {
-            width: 420,
-            lineGap: 2,
-          }
-        );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(8)
+          .fillColor(COLORS.white)
+          .text(
+            String(index + 1),
+            69,
+            insightY + 21,
+            {
+              width: 7,
+              align: "center",
+            }
+          );
 
-      doc.y = cardY + 90;
-    });
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(9)
+          .fillColor(COLORS.dark)
+          .text(
+            "AI Recommendation",
+            100,
+            insightY + 12
+          );
+
+        doc
+          .font("Helvetica")
+          .fontSize(8)
+          .fillColor(COLORS.text)
+          .text(
+            String(insight),
+            100,
+            insightY + 31,
+            {
+              width: 420,
+              height: 28,
+              ellipsis: true,
+              lineGap: 1,
+            }
+          );
+
+        insightY += 82;
+      }
+    );
   }
 
   // =========================================================
-  // FINAL SUMMARY
+  // EXECUTIVE SUMMARY
   // =========================================================
-
-  checkPageSpace(150);
 
   drawSectionTitle(
     "Executive Summary",
-    "Overall account performance snapshot"
+    "Overall account performance snapshot",
+    535
   );
 
-  const summaryY = doc.y;
-
-  drawRoundedCard(
+  drawCard(
     45,
-    summaryY,
+    580,
     505,
-    120,
-    "#F9F5FC"
+    125,
+    COLORS.softPurple
   );
+
+  const summaryText =
+    `Account ${
+      reportData.account_id || "N/A"
+    } published ${formatNumber(
+      totalPosts
+    )} posts and generated ${formatNumber(
+      totalLikes
+    )} likes, ${formatNumber(
+      totalComments
+    )} comments, ${formatNumber(
+      totalShares
+    )} shares, and ${formatNumber(
+      totalSaves
+    )} saves.`;
 
   doc
     .font("Helvetica")
-    .fontSize(10)
+    .fontSize(9)
     .fillColor(COLORS.text)
     .text(
-      `Account ${reportData.account_id || "N/A"} published ${formatNumber(
-        totalPosts
-      )} posts and generated ${formatNumber(
-        totalLikes
-      )} likes, ${formatNumber(
-        totalComments
-      )} comments, ${formatNumber(
-        totalShares
-      )} shares, and ${formatNumber(
-        totalSaves
-      )} saves.`,
+      summaryText,
       65,
-      summaryY + 22,
+      602,
       {
         width: 465,
-        lineGap: 5,
+        lineGap: 4,
       }
     );
 
@@ -804,49 +1006,22 @@ const generatePDF = (reportData, outputStream) => {
         engagementRate
       )}`,
       65,
-      summaryY + 82
+      670
+    );
+
+  doc
+    .font("Helvetica")
+    .fontSize(8)
+    .fillColor(COLORS.muted)
+    .text(
+      "Report generated using Instagram analytics data.",
+      65,
+      690
     );
 
   // =========================================================
-  // FOOTERS
+  // END PDF
   // =========================================================
-
-  const range = doc.bufferedPageRange();
-
-  for (
-    let i = range.start;
-    i < range.start + range.count;
-    i++
-  ) {
-    doc.switchToPage(i);
-
-    doc
-      .moveTo(45, 790)
-      .lineTo(550, 790)
-      .strokeColor(COLORS.border)
-      .stroke();
-
-    doc
-      .font("Helvetica")
-      .fontSize(7)
-      .fillColor(COLORS.muted)
-      .text(
-        "Instagram Analytics Dashboard using AI",
-        45,
-        800
-      );
-
-    doc
-      .text(
-        `Page ${i + 1} of ${range.count}`,
-        470,
-        800,
-        {
-          width: 80,
-          align: "right",
-        }
-      );
-  }
 
   doc.end();
 };
