@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:5000/api";
+const API_BASE_URL =
+  "https://instagram-analytics-dashboard-using-ai.onrender.com/api";
 
 export const getAccountNumbers = async () => {
   const response = await fetch(
